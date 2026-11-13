@@ -235,6 +235,44 @@ h1 small{display:block;font-size:13px;color:var(--mut);font-weight:500;letter-sp
 .tabbar button:active{transform:scale(.94)}
 
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.tot{padding:14px 14px 12px}
+.tot .th{display:flex;align-items:center;gap:10px}
+.tot .th img{width:34px;height:34px;object-fit:contain}
+.tot .tn{font-weight:750;font-size:17px}
+.tot .tg{display:flex;justify-content:space-between;gap:6px;margin-top:12px;text-align:center}
+.tot .pc{display:flex;gap:16px;margin-top:6px;font-size:12px;color:var(--mut)}
+.tg b,.gr b{display:block;font-size:17px;font-weight:700;font-variant-numeric:tabular-nums}
+.tg i,.gr i{display:block;font-style:normal;font-size:9.5px;color:var(--mut);letter-spacing:.04em;margin-top:1px}
+.pager{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.pager::-webkit-scrollbar{display:none}
+.pgp{flex:0 0 100%;scroll-snap-align:start;min-width:0}
+.pr{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid rgba(255,255,255,.07);cursor:pointer}
+.pgp .pr:first-child{border-top:0}
+.pr .av{width:40px;height:40px;font-size:13px}
+.pr .bd{flex:1;min-width:0}
+.nm2{font-size:13.5px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nm2 em{font-style:normal;color:var(--mut);font-weight:500}
+.sb2{display:inline-block;background:rgba(138,180,255,.2);color:var(--acc);border-radius:5px;padding:0 5px;font-size:10px;font-weight:800;margin-left:6px}
+.gr{display:grid;grid-template-columns:repeat(8,1fr);margin-top:4px;text-align:center}
+.gr b.pos{color:var(--over)}.gr b.neg{color:var(--under)}
+.pr.dn{cursor:default}
+.dots{display:flex;gap:6px;justify-content:center;margin-top:6px}
+.dots i{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.25);transition:background .2s}
+.dots i.on{background:#fff}
+.gh2{font-size:13px;font-weight:750;letter-spacing:.02em;margin:0 0 6px}
+.lg>div{display:grid;grid-template-columns:62px 1fr 1fr;gap:8px;align-items:baseline;padding:8px 0;border-top:1px solid rgba(255,255,255,.07);font-size:14px}
+.lg>div:first-child{border-top:0}
+.lg span{font-size:11px;color:var(--mut);letter-spacing:.05em}
+.lg b{font-weight:650}.lg i{font-style:normal;color:var(--mut);font-weight:500;font-size:12.5px}
+.row.pk{width:100%;text-align:left;align-items:flex-start;gap:12px;padding:12px 4px;border-top:1px solid rgba(255,255,255,.07);border-radius:0}
+.glass>.row.pk:first-of-type{border-top:0}
+.pkb{flex:1;min-width:0}
+.pkl{font-weight:750;font-size:15.5px;margin:2px 0 3px}
+.pkl.over{color:var(--over)}.pkl.under{color:var(--under)}
+.pkb .sb b{color:var(--txt)}
+.why{font-size:11.5px;color:var(--mut);margin-top:3px;line-height:1.4}
+.pkp{flex:none;text-align:right}.pkp b{display:block;font-size:17px;font-variant-numeric:tabular-nums}.pkp span{font-size:10.5px;color:var(--mut)}
+.pin{flex:1;min-width:0;padding:11px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:rgba(0,0,0,.25);color:var(--txt);font-size:16px;outline:none}
 </style>
 </head>
 <body>
@@ -380,22 +418,28 @@ function parseEvent(e){
 
 /* box score */
 function parseBox(j){
-  const out = [];
+  const out = []; out.dnp = []; out.tot = {};
   ((j.boxscore || {}).players || []).forEach(t => {
     const tm = t.team || {};
     const ab = tm.abbreviation || '';
     (t.statistics || []).forEach(sec => {
       const labels = sec.labels || [];
+      if(sec.totals && sec.totals.length){ const o = {}; labels.forEach((l, i) => { o[l] = sec.totals[i]; }); out.tot[String(tm.id || '')] = o; }
       (sec.athletes || []).forEach(a => {
         const s = a.stats || [];
-        if(!s.length) return;
-        const g = l => { const i = labels.indexOf(l); return i < 0 ? 0 : (parseFloat(String(s[i])) || 0); };
-        const m = l => { const i = labels.indexOf(l); return i < 0 ? 0 : (parseInt(String(s[i]).split('-')[0], 10) || 0); };
-        const tx = l => { const i = labels.indexOf(l); return i < 0 ? '' : String(s[i]); };
         const at = a.athlete || {};
+        if(!s.length){
+          if(at.id) out.dnp.push({id: String(at.id), name: at.displayName || '', team: ab, tid: String(tm.id || ''), pos: (at.position && at.position.abbreviation) || '', reason: a.reason || ''});
+          return;
+        }
+        const g = l => { const i = labels.indexOf(l); return i < 0 ? 0 : (parseFloat(String(s[i])) || 0); };
+        const pair = l => { const i = labels.indexOf(l); const q = i < 0 ? [] : String(s[i]).split('-'); return [parseInt(q[0], 10) || 0, parseInt(q[1], 10) || 0]; };
+        const tx = l => { const i = labels.indexOf(l); return i < 0 ? '' : String(s[i]); };
+        const fg = pair('FG'), tp = pair('3PT'), ft = pair('FT');
         out.push({id: String(at.id || ''), name: at.displayName || '', team: ab, tid: String(tm.id || ''),
           pos: (at.position && at.position.abbreviation) || '', starter: !!a.starter,
-          min: g('MIN'), pts: g('PTS'), reb: g('REB'), ast: g('AST'), stl: g('STL'), blk: g('BLK'), tov: g('TO'), tpm: m('3PT'),
+          min: g('MIN'), pts: g('PTS'), reb: g('REB'), ast: g('AST'), stl: g('STL'), blk: g('BLK'), tov: g('TO'), tpm: tp[0],
+          fgm: fg[0], fga: fg[1], tpa: tp[1], ftm: ft[0], fta: ft[1], pm: g('+/-'), oreb: g('OREB'), dreb: g('DREB'), pf: g('PF'),
           fg: tx('FG'), tp: tx('3PT'), ft: tx('FT')});
       });
     });
@@ -729,7 +773,7 @@ const S = {
   season: null, seasonSet: {}, seasonKnown: false, hasGameDay: {},
   days: {}, gday: '', gview: 'hoy', gloading: false, gdayerr: '', upd: 0,
   calOpen: false, calMonth: '',
-  box: null, boxGame: null, berr: '', gtab: 'away',
+  box: null, boxGame: null, berr: '', gtab: 'away', odds: null, oddsErr: '', oddsBusy: null, lines: null, picks: {}, pg: 0, nameIdx: null,
   anim: false, ctx: null, ctxOn: true, tmap: {}, glc: {}, inj: null, injAt: 0,
   recents: store.get('recents') || []
 };
@@ -769,6 +813,7 @@ function render(){
   else if(S.tab === 'player') v.innerHTML = playerHTML();
   else if(S.tab === 'game') v.innerHTML = gameHTML();
   S.anim = false;
+  if(S.tab === 'game') restorePager();
   if(S.tab === 'home') renderResults();
 }
 
@@ -973,6 +1018,270 @@ function updateGames(){
   list.innerHTML = h;
 }
 
+/* ============ líneas de apuestas (Worker propio) ============ */
+const WORKER = 'https://lingering-voice-28b8.leonardo0mariscal.workers.dev';
+const getPass = () => store.get('wpass') || '';
+const MK = {player_points:'PTS', player_rebounds:'REB', player_assists:'AST', player_threes:'3PM', player_steals:'STL', player_blocks:'BLK',
+  player_pts_rebs_asts:'PRA', player_pts_rebs:'PR', player_pts_asts:'PA', player_rebs_asts:'RA'};
+const Q1MK = {player_points_milestones___1st_quarter:'puntos', player_rebounds_milestones___1st_quarter:'rebotes', player_assists_milestones___1st_quarter:'asistencias'};
+const amProb = o => o < 0 ? -o / (-o + 100) : 100 / (o + 100);
+const fmtOdd = o => (o > 0 ? '+' : '') + o;
+const BOOKN = {draftkings:'DraftKings', fanduel:'FanDuel', betmgm:'BetMGM', caesars:'Caesars'};
+const sameTeam = (full, t) => !!t && !!t.name && norm(full).includes(norm(t.name));
+
+async function loadOdds(){
+  if(!getPass()){ S.oddsErr = 'nopass'; return null; }
+  if(S.odds && Date.now() - S.odds.lt < 9e5) return S.odds;
+  if(S.oddsBusy) return S.oddsBusy;
+  S.oddsBusy = (async () => {
+    try{
+      const r = await fetch(WORKER + '/slim?pass=' + encodeURIComponent(getPass()));
+      if(r.status === 401){ S.oddsErr = 'badpass'; return null; }
+      if(r.status === 429){ S.oddsErr = 'budget'; return S.odds || null; }
+      if(!r.ok) throw new Error('x');
+      const j = await r.json(); j.lt = Date.now(); S.odds = j; S.oddsErr = '';
+      return j;
+    }catch(e){ S.oddsErr = 'net'; return S.odds || null; }
+    finally{ S.oddsBusy = null; }
+  })();
+  return S.oddsBusy;
+}
+async function loadLines(){
+  if(S.lines && Date.now() - S.lines.lt < 18e5) return S.lines;
+  try{
+    const r = await fetch(WORKER + '/toa/v4/sports/basketball_nba/odds?regions=us&markets=h2h,spreads,totals&bookmakers=draftkings&oddsFormat=american&pass=' + encodeURIComponent(getPass()));
+    if(!r.ok) throw new Error('x');
+    S.lines = {lt: Date.now(), ev: await r.json()};
+  }catch(e){ S.lines = {lt: Date.now(), ev: [], err: 1}; }
+  return S.lines;
+}
+function lineFor(g){
+  const L = S.lines; if(!L || !L.ev || !L.ev.length) return null;
+  const e = L.ev.find(x => sameTeam(x.home_team, g.home) && sameTeam(x.away_team, g.away)); if(!e) return null;
+  const bk = (e.bookmakers || [])[0]; if(!bk) return null;
+  const mk = k => (bk.markets || []).find(m => m.key === k);
+  const oc = (m, nm) => m && (m.outcomes || []).find(o => o.name === nm);
+  return {book: bk.title, spH: oc(mk('spreads'), e.home_team), spA: oc(mk('spreads'), e.away_team),
+    over: oc(mk('totals'), 'Over'), under: oc(mk('totals'), 'Under'), mlH: oc(mk('h2h'), e.home_team), mlA: oc(mk('h2h'), e.away_team)};
+}
+function consensus(e){
+  const cnt = {}; e.books.forEach(b => { cnt[b.line] = (cnt[b.line] || 0) + 1; });
+  let line = null, n = 0;
+  Object.keys(cnt).forEach(l => { if(cnt[l] > n){ n = cnt[l]; line = +l; } });
+  const bs = e.books.filter(b => b.line === line);
+  const po = avg(bs.map(b => { const a = amProb(b.over), c = amProb(b.under); return a / (a + c); }));
+  const top = f => bs.reduce((m, b) => (!m || b[f] > m[f]) ? b : m, null);
+  return {line: line, n: bs.length, po: po, pu: 1 - po, bestO: top('over'), bestU: top('under')};
+}
+function findPlayer(name, g){
+  if(!S.nameIdx){ S.nameIdx = {}; S.players.forEach(p => { (S.nameIdx[norm(p.name)] = S.nameIdx[norm(p.name)] || []).push(p); }); }
+  const l = S.nameIdx[norm(name)] || [];
+  return l.find(p => p.team === g.home.ab || p.team === g.away.ab) || null;
+}
+const preLive = g => S.tab === 'game' && S.boxGame && S.boxGame.id === g.id;
+async function buildPre(g){
+  const o = await loadOdds();
+  loadLines().then(() => { if(preLive(g)) render(); });
+  if(!o){ if(preLive(g)) render(); return; }
+  const ev = o.games.find(e => sameTeam(e.home, g.home) && sameTeam(e.away, g.away));
+  if(!ev){ S.picks[g.id] = {none: 1}; if(preLive(g)) render(); return; }
+  const pm = {}, q1 = {};
+  o.rows.forEach(r => {
+    if(r[0] !== ev.id) return;
+    const book = r[1], player = r[2], mk = r[3], line = r[5], over = r[6], under = r[7], inj = r[8];
+    if(MK[mk] && over != null && under != null){
+      const key = player + '|' + mk;
+      const e = pm[key] || (pm[key] = {player: player, mk: mk, k: MK[mk], books: [], inj: null});
+      e.books.push({book: book, line: line, over: over, under: under});
+      if(inj) e.inj = inj;
+    }
+    else if(Q1MK[mk] && over != null){
+      const key = player + '|' + mk;
+      const e = q1[key] || (q1[key] = {player: player, tipo: Q1MK[mk], lines: {}});
+      (e.lines[line] = e.lines[line] || []).push({book: book, price: over});
+    }
+  });
+  // primer cuarto: la línea más alta que la casa todavía da como probable (>= 65%)
+  const q1list = [];
+  Object.keys(q1).forEach(key => {
+    const e = q1[key]; let best = null;
+    Object.keys(e.lines).map(Number).sort((a, b) => a - b).forEach(l => {
+      const bp = e.lines[l].reduce((m, b) => (!m || b.price > m.price) ? b : m, null);
+      const imp = amProb(bp.price);
+      if(imp >= 0.65 && (!best || l > best.line)) best = {line: l, price: bp.price, book: bp.book, imp: imp};
+    });
+    if(!best || best.line < (e.tipo === 'puntos' ? 3 : 2)) return;
+    const pl = findPlayer(e.player, g);
+    q1list.push({player: e.player, tipo: e.tipo, line: best.line, price: best.price, book: best.book, imp: best.imp, id: pl ? pl.id : ''});
+  });
+  q1list.sort((a, b) => b.imp - a.imp);
+  const q1top = [], seen = {};
+  q1list.forEach(x => { if(q1top.length < 8 && !seen[x.player]){ seen[x.player] = 1; q1top.push(x); } });
+
+  // jugadores a analizar: los de más puntos de cada equipo
+  const byP = {};
+  Object.keys(pm).forEach(k => { const e = pm[k]; (byP[e.player] = byP[e.player] || []).push(e); });
+  const cands = [];
+  Object.keys(byP).forEach(name => {
+    const pe = byP[name].find(e => e.k === 'PTS'); if(!pe) return;
+    const p = findPlayer(name, g); if(!p) return;
+    cands.push({p: p, name: name, ents: byP[name], pl: consensus(pe).line || 0, inj: byP[name].map(e => e.inj).find(Boolean) || null});
+  });
+  const top = [];
+  [g.home.ab, g.away.ab].forEach(ab => { cands.filter(c => c.p.team === ab).sort((a, b) => b.pl - a.pl).slice(0, 7).forEach(c => top.push(c)); });
+  const P = S.picks[g.id] = {busy: true, done: 0, total: top.length, picks: [], q1: q1top, skipped: []};
+  if(preLive(g)) render();
+  const out = [];
+  for(let i = 0; i < top.length; i += 4){
+    await Promise.all(top.slice(i, i + 4).map(async c => {
+      try{
+        if(c.inj === 'Out'){ P.skipped.push(c.name + ' (fuera)'); return; }
+        const games = await teamLog(c.p.id);
+        if(!games || games.length < 8) return;
+        let ctx = null;
+        try{ ctx = await buildCtx(c.p, games); }catch(e){}
+        if(ctx && ctx.me === 'Out'){ P.skipped.push(c.name + ' (fuera)'); return; }
+        const dl = (ctx && ctx.delta) || {};
+        c.ents.forEach(e => {
+          const cs = consensus(e); if(cs.line == null) return;
+          const fn = STATS[e.k].fn, vals = games.map(fn);
+          ['over', 'under'].forEach(side => {
+            const est = estimate(vals, cs.line, side, dl[e.k] || 0);
+            const fair = Math.round((side === 'over' ? cs.po : cs.pu) * 100);
+            const r10 = rate(vals.slice(0, 10), cs.line, side);
+            const bp = side === 'over' ? cs.bestO : cs.bestU;
+            if(est >= 60 && r10.h >= 6 && est - fair >= 5 && bp)
+              out.push({id: c.p.id, name: c.name, team: c.p.team, k: e.k, side: side, line: cs.line, est: est, fair: fair, h: r10.h, c: r10.c,
+                price: bp[side], book: bp.book, nb: cs.n, inj: c.inj || (ctx && ctx.me) || '', ctx: ctx});
+          });
+        });
+      }catch(e){}
+      P.done++;
+    }));
+    if(preLive(g)) render();
+  }
+  out.sort((a, b) => (b.est + (b.est - b.fair)) - (a.est + (a.est - a.fair)));
+  const cnt = {};
+  P.picks = out.filter(x => { cnt[x.name] = (cnt[x.name] || 0) + 1; return cnt[x.name] <= 2; }).slice(0, 8);
+  P.busy = false;
+  if(preLive(g)) render();
+}
+function whyHTML(x){
+  const w = [], c = x.ctx;
+  if(c && c.opp) w.push('Rival ' + esc(c.opp.ab) + ' permite ' + fmt(c.opp.pa) + ' pts (#' + c.opp.rank + ' de 30)');
+  if(c && c.applied) w.push('Sin ' + esc(c.applied));
+  if(c && c.oppOut && c.oppOut.length) w.push('Rival sin ' + esc(c.oppOut.slice(0, 2).join(', ')));
+  if(x.inj && x.inj !== 'Out') w.push('⚠ ' + esc(x.inj === 'Day-To-Day' ? 'Dudoso' : x.inj));
+  return w.length ? '<div class="why">' + w.join(' · ') + '</div>' : '';
+}
+function pickRow(x){
+  const sd = x.side === 'over' ? 'Más de ' : 'Menos de ';
+  return '<button class="row pk" data-a="openp" data-id="' + esc(x.id) + '" data-n="' + esc(x.name) + '" data-t="' + esc(x.team) + '">' + avatar({id: x.id, name: x.name}) +
+    '<div class="pkb"><div class="nm">' + esc(x.name) + ' <span class="sb">' + esc(x.team) + '</span></div>' +
+    '<div class="pkl ' + x.side + '">' + sd + fmt(x.line) + ' ' + esc(STATS[x.k].n) + '</div>' +
+    '<div class="sb">Mi estimado <b>' + x.est + '%</b> · Casa ' + x.fair + '% · Últ. 10: ' + x.h + '/' + x.c + '</div>' + whyHTML(x) + '</div>' +
+    '<div class="pkp"><b>' + fmtOdd(x.price) + '</b><span>' + esc(BOOKN[x.book] || x.book) + '</span></div></button>';
+}
+function q1Row(x){
+  return '<div class="row pk">' + avatar({id: x.id, name: x.player}) + '<div class="pkb"><div class="nm">' + esc(x.player) + '</div>' +
+    '<div class="pkl over">1er cuarto: ' + x.line + '+ ' + esc(x.tipo) + '</div><div class="sb">La casa le da ' + Math.round(x.imp * 100) + '% (con comisión)</div></div>' +
+    '<div class="pkp"><b>' + fmtOdd(x.price) + '</b><span>' + esc(BOOKN[x.book] || x.book) + '</span></div></div>';
+}
+function lineCard(L){
+  const sp = (o) => o ? esc(o.name.split(' ').pop()) + ' ' + (o.point > 0 ? '+' : '') + o.point + ' <i>' + fmtOdd(o.price) + '</i>' : '';
+  const ml = o => o ? esc(o.name.split(' ').pop()) + ' <i>' + fmtOdd(o.price) + '</i>' : '';
+  let h = '<div class="glass card"><div class="gh2">Línea del partido · ' + esc(L.book) + '</div><div class="lg">';
+  if(L.spA) h += '<div><span>Spread</span><b>' + sp(L.spA) + '</b><b>' + sp(L.spH) + '</b></div>';
+  if(L.over) h += '<div><span>Total</span><b>Más ' + L.over.point + ' <i>' + fmtOdd(L.over.price) + '</i></b><b>Menos ' + L.under.point + ' <i>' + fmtOdd(L.under.price) + '</i></b></div>';
+  if(L.mlA) h += '<div><span>Ganador</span><b>' + ml(L.mlA) + '</b><b>' + ml(L.mlH) + '</b></div>';
+  return h + '</div></div>';
+}
+function passCard(){
+  const bad = S.oddsErr === 'badpass';
+  return '<div class="glass card"><div class="gh2">Conecta las líneas</div><p class="fine" style="margin:0 0 10px">' +
+    (bad ? 'Esa contraseña no es correcta. Prueba otra vez.' : 'Pega la contraseña de tu Worker. Se guarda solo en este teléfono.') + '</p>' +
+    '<div style="display:flex;gap:8px"><input id="wp" type="password" autocomplete="off" placeholder="Contraseña" class="pin"><button class="chip on" data-a="savepass">Guardar</button></div></div>';
+}
+function preHTML(g){
+  let h = '';
+  if(S.oddsErr === 'nopass' || S.oddsErr === 'badpass') return h + passCard();
+  const L = lineFor(g); if(L) h += lineCard(L);
+  const P = S.picks[g.id];
+  if(!P){
+    if(S.oddsErr === 'net') return h + '<div class="empty">No pude cargar las líneas.<br><button class="chip on" data-a="retrypre">Reintentar</button></div>';
+    if(S.oddsErr === 'budget') return h + '<div class="empty">Ya se usaron los créditos de líneas de hoy. Mañana vuelven.</div>';
+    return h + '<div class="glass card"><div class="sk" style="width:70%;margin-bottom:14px"></div><div class="sk" style="width:50%"></div></div><p class="fine">Cargando las líneas de las casas de apuestas…</p>';
+  }
+  if(P.none) return h + '<div class="empty">Las casas todavía no publican líneas de este partido.</div>';
+  if(P.busy) h += '<div class="glass card"><div class="gh2">Analizando el partido…</div><p class="fine" style="margin:0">Rival, lesionados y últimos juegos de ' + P.done + ' de ' + P.total + ' jugadores.</p></div>';
+  else{
+    h += '<div class="glass card"><div class="gh2">Mejores picks de jugadores</div>' +
+      (P.picks.length ? P.picks.map(pickRow).join('') : '<div class="empty" style="padding:18px 8px">Hoy ninguna línea de este partido pasa el filtro (estimado de 60% o más, 6 de 10 y mejor que la casa). Mejor no forzar una.</div>') + '</div>';
+    if(P.q1.length) h += '<div class="glass card"><div class="gh2">Primer cuarto · lo más probable</div>' + P.q1.map(q1Row).join('') + '</div>';
+    if(P.skipped.length) h += '<p class="fine">No analizados por lesión: ' + esc(P.skipped.join(', ')) + '.</p>';
+    h += '<p class="fine"><b>Mi estimado</b> sale del historial del jugador (últimos 10, temporada y últimos 5), ajustado por el rival y por lesionados. <b>Casa</b> es la probabilidad sin comisión del promedio de DraftKings, FanDuel, BetMGM y Caesars. Si mi estimado supera a la casa suele ser ruido: úsalo como guía, no como seguro. Los picks del primer cuarto salen solo de la línea de la casa, no tengo estadísticas por cuarto.</p>';
+  }
+  return h;
+}
+
+/* ============ box score (como la app de referencia) ============ */
+const tsp = r => { const d = 2 * ((r.fga || 0) + .44 * (r.fta || 0)); return d ? Math.round(r.pts / d * 1000) / 10 : 0; };
+const cell = (v, l, cls) => '<div><b' + (cls ? ' class="' + cls + '"' : '') + '>' + esc(v) + '</b><i>' + l + '</i></div>';
+const shortName = n => String(n || '').replace(/^(\S)\S*\s+/, '$1. ');
+function pRow(r, pg){
+  const fgm = r.fgm || 0, fga = r.fga || 0, pm = r.pm || 0;
+  const cells = pg === 0
+    ? cell(fmt(r.min), 'MIN') + cell(fmt(r.pts), 'PTS') + cell(fmt(r.reb), 'REB') + cell(fmt(r.ast), 'AST') + cell(fmt(r.stl), 'STL') + cell(fmt(r.blk), 'BLK') +
+      cell((pm > 0 ? '+' : '') + fmt(pm), '+/-', pm > 0 ? 'pos' : pm < 0 ? 'neg' : '') + cell(fga ? Math.round(fgm / fga * 100) : 0, 'FG%')
+    : cell(fgm + '/' + fga, 'FG') + cell((r.tpm || 0) + '/' + (r.tpa || 0), '3PT') + cell((r.ftm || 0) + '/' + (r.fta || 0), 'FT') + cell(fmt(r.oreb || 0), 'OREB') +
+      cell(fmt(r.dreb || 0), 'DREB') + cell(fmt(r.tov), 'TO') + cell(fmt(r.pf || 0), 'PF') + cell(tsp(r), 'TS%');
+  return '<div class="pr" data-a="openlive" data-id="' + esc(r.id) + '">' + avatar({id: r.id, name: r.name, demo: S.demo}) +
+    '<div class="bd"><div class="nm2">' + esc(shortName(r.name)) + ' <em>· ' + esc(r.pos) + '</em>' + (r.starter ? '<span class="sb2">S</span>' : '') + '</div><div class="gr">' + cells + '</div></div></div>';
+}
+function totalsFor(t, rows){
+  const tot = (S.box && S.box.tot && S.box.tot[t.id]) || null;
+  const sum = f => rows.reduce((a, r) => a + (r[f] || 0), 0);
+  const o = {
+    FG: tot && tot.FG ? tot.FG : sum('fgm') + '-' + sum('fga'),
+    TP: tot && tot['3PT'] ? tot['3PT'] : sum('tpm') + '-' + sum('tpa'),
+    FT: tot && tot.FT ? tot.FT : sum('ftm') + '-' + sum('fta'),
+    TO: tot && tot.TO != null ? tot.TO : sum('tov'),
+    REB: tot && tot.REB != null ? tot.REB : sum('reb'),
+    AST: tot && tot.AST != null ? tot.AST : sum('ast')
+  };
+  return o;
+}
+const slash = s => String(s).replace('-', '/');
+const pcOf = s => { const p = String(s).split('-').map(Number); return p[1] ? (Math.round(p[0] / p[1] * 1000) / 10) + '%' : '0%'; };
+function teamBox(t){
+  const rows = teamRows(t);
+  if(!rows.length) return '<div class="empty">Sin estadísticas todavía.</div>';
+  const o = totalsFor(t, rows);
+  let h = '<div class="glass card tot"><div class="th">' + logoImg(t) + '<span class="tn">' + esc(t.name || t.ab) + '</span></div><div class="tg">' +
+    cell(slash(o.FG), 'FG') + cell(slash(o.TP), '3PT') + cell(slash(o.FT), 'FT') + cell(o.TO, 'TO') + cell(o.REB, 'REB') + cell(o.AST, 'AST') +
+    '</div><div class="pc"><span>' + pcOf(o.FG) + '</span><span>' + pcOf(o.TP) + '</span><span>' + pcOf(o.FT) + '</span></div></div>';
+  const pg = S.pg || 0;
+  h += '<div class="glass card" style="padding:2px 12px 10px"><div class="pager"><div class="pgp">' + rows.map(r => pRow(r, 0)).join('') + '</div><div class="pgp">' + rows.map(r => pRow(r, 1)).join('') +
+    '</div></div><div class="dots"><i class="' + (pg === 0 ? 'on' : '') + '"></i><i class="' + (pg === 1 ? 'on' : '') + '"></i></div></div>';
+  const dn = ((S.box && S.box.dnp) || []).filter(r => (t.id && r.tid === t.id) || r.team === t.ab);
+  if(dn.length){
+    const g = S.boxGame || {};
+    h += '<div class="glass card" style="padding:6px 12px"><div class="gh2" style="margin:8px 0 2px">' + (g.state === 'post' ? 'No jugaron' : 'Aún sin minutos') + '</div>' +
+      dn.map(r => '<div class="pr dn">' + avatar({id: r.id, name: r.name, demo: S.demo}) + '<div class="bd"><div class="nm2">' + esc(shortName(r.name)) + ' <em>· ' + esc(r.pos) + '</em></div><div class="sb">' + esc(r.reason || (g.state === 'post' ? 'No jugó' : 'Todavía no entra')) + '</div></div></div>').join('') + '</div>';
+  }
+  return h;
+}
+function restorePager(){
+  document.querySelectorAll('.pager').forEach(el => { el.style.scrollBehavior = 'auto'; el.scrollLeft = (S.pg || 0) * el.clientWidth; });
+}
+document.addEventListener('scroll', e => {
+  const el = e.target;
+  if(!el || !el.classList || !el.classList.contains('pager')) return;
+  const i = el.clientWidth ? Math.round(el.scrollLeft / el.clientWidth) : 0;
+  S.pg = i;
+  const d = el.parentNode.querySelectorAll('.dots i'); d.forEach((x, n) => x.classList.toggle('on', n === i));
+}, true);
+
 /* ---------- Juegos: detalle de un juego ---------- */
 function stateLabel(g){
   if(g.state === 'in') return '● ' + g.detail;
@@ -1009,7 +1318,7 @@ function gameHTML(){
     return '<div class="tr' + (lose ? ' lose' : '') + '">' + logoImg(t) + '<div><div class="nm">' + esc(t.name || t.ab) + '</div><div class="rc">' + esc(t.rec) + '</div></div><span class="sc">' + esc(g.state === 'pre' ? '' : t.score) + '</span></div>';
   };
   h += '<div class="glass card ghead">' + tr(g.away, g.home) + tr(g.home, g.away) + '<div class="gstat' + (g.state === 'in' ? ' in' : '') + '">' + esc(stateLabel(g)) + '</div></div>';
-  if(g.state === 'pre') return h + '<div class="empty">Este juego todavía no empieza.<br>Las estadísticas aparecen cuando arranca.</div>' + (S.berr ? '' : '');
+  if(g.state === 'pre') return h + preHTML(g);
   if(S.berr) return h + '<div class="empty">' + esc(S.berr) + '</div>';
   if(!S.box) return h + '<div class="glass card"><div class="sk" style="width:70%;margin-bottom:14px"></div><div class="sk" style="width:50%"></div></div>';
   h += '<div class="seg" style="margin-bottom:12px">' +
@@ -1021,7 +1330,7 @@ function gameHTML(){
       '<div class="glass card" style="padding:6px" id="indlist">' + indList() + '</div>';
   }
   else{
-    h += boxTable(teamRows(S.gtab === 'home' ? g.home : g.away));
+    h += teamBox(S.gtab === 'home' ? g.home : g.away);
   }
   if(g.state === 'in') h += '<p class="fine">Se actualiza solo cada 20 segundos.</p>';
   return h;
@@ -1109,6 +1418,7 @@ async function openGame(id){
   if(!g) return;
   S.boxGame = g; S.box = null; S.berr = ''; S.gtab = 'away'; S.q2 = ''; S.tab = 'game';
   window.scrollTo(0, 0); render();
+  if(g.state === 'pre') buildPre(g);
   try{ await loadBox(g.id); }catch(err){ S.berr = 'No pude cargar las estadísticas de este juego.'; }
   if(S.tab === 'game' && S.boxGame && S.boxGame.id === g.id) render();
 }
@@ -1189,6 +1499,15 @@ document.addEventListener('click', async e => {
     const g = S.boxGame || {};
     openPlayer({id: r.id, name: r.name, team: r.team, pos: r.pos || '', demo: S.demo}, Object.assign({state: g.state, detail: g.detail, eventId: g.id}, r), 'game');
   }
+  else if(a === 'savepass'){
+    const v = ($('#wp') || {}).value || ''; if(!v.trim()) return;
+    store.set('wpass', v.trim()); S.oddsErr = ''; S.odds = null; S.picks = {}; S.lines = null;
+    render(); if(S.boxGame && S.boxGame.state === 'pre') buildPre(S.boxGame);
+  }
+  else if(a === 'retrypre'){ S.oddsErr = ''; S.picks = {}; render(); if(S.boxGame) buildPre(S.boxGame); }
+  else if(a === 'openp'){
+    openPlayer({id: el.dataset.id, name: el.dataset.n, team: el.dataset.t, pos: '', demo: false}, null, 'game');
+  }
   else if(a === 'retry'){ location.reload(); }
   else if(a === 'reload'){
     if(S.tab === 'player') loadGames();
@@ -1209,6 +1528,7 @@ async function tick(){
       await loadDay(S.gday, true); S.upd = Date.now(); updateGames();
     }
     else if(S.tab === 'game' && S.boxGame && S.boxGame.state !== 'post'){
+      if(document.activeElement && document.activeElement.id === 'wp') return;
       await loadBox(S.boxGame.id); render();
     }
     else if(S.tab === 'player' && S.live && S.live.state === 'in'){
