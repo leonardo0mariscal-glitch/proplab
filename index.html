@@ -203,14 +203,12 @@ async function getJSON(url, ms){
 }
 
 async function loadIndex(){
-  const tj = await getJSON(ESPN.teams);
-  const teams = (((tj.sports||[])[0]||{}).leagues||[])[0];
-  const list = ((teams||{}).teams||[]).map(x => x.team).filter(Boolean);
-  if(!list.length) throw new Error('sin equipos');
+  const ids = Array.from({length: 30}, (_, i) => i + 1);
   const out = [];
-  await Promise.all(list.map(async t => {
+  await Promise.all(ids.map(async id => {
     try{
-      const rj = await getJSON(ESPN.roster(t.id));
+      const rj = await getJSON(ESPN.roster(id));
+      const ab = (rj.team && rj.team.abbreviation) || '';
       let ath = rj.athletes || [];
       if(ath.length && ath[0].items) ath = ath.flatMap(g => g.items || []);
       ath.forEach(a => {
@@ -219,11 +217,12 @@ async function loadIndex(){
           id: String(a.id),
           name: a.displayName || a.fullName || '',
           pos: (a.position && (a.position.abbreviation || a.position.name)) || '',
-          team: t.abbreviation || ''
+          team: ab
         });
       });
     }catch(e){}
   }));
+  if(!out.length) throw new Error('sin jugadores');
   return out.filter(p => p.name).sort((a,b) => a.name.localeCompare(b.name));
 }
 
@@ -644,4 +643,3 @@ setInterval(async () => {
 </script>
 </body>
 </html>
- 
